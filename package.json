@@ -1,0 +1,19 @@
+{
+  "name": "onemap-backend",
+  "version": "1.0.0",
+  "description": "\"RESTful backend APIs\"",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iridescentfaces/onemap-backend.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iridescentfaces/onemap-backend/issues"
+  },
+  "homepage": "https://github.com/iridescentfaces/onemap-backend#readme"
+}
