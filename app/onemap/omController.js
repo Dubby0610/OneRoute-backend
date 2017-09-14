@@ -1,13 +1,8 @@
 'use strict';
 var request = require("request");
 
-var toky = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjg2OSwidXNlcl9pZCI6ODY5LCJlbWFpbCI6IkUwMTc2MzA4QHUubnVzLmVkdSIsImZvcmV2ZXIiOmZhbHNlLCJpc3MiOiJodHRwOlwvXC9vbTIuZGZlLm9uZW1hcC5zZ1wvYXBpXC92MlwvdXNlclwvc2Vzc2lvbiIsImlhdCI6MTUwNTM4NTgyOCwiZXhwIjoxNTA1ODE3ODI4LCJuYmYiOjE1MDUzODU4MjgsImp0aSI6ImUyMGM2Y2RkMGUyZTVmNTdlMzk2YjlhNWZiMjA1MTkyIn0.KX1iKgdVW6cY0DuMVyG1Fm1iwUmIIeVGB03Qt1U6Z2U";
-
 exports.draw_path = function(req, res) {
-    // read req.body for sp, ep, routeType
-    // send to onemap
-    // retrieve data
-    // return to user
+    // read req for sp (lat,lng), ep (lat,lng), routeType(cycle)
 
     console.log(req.query);
     var start_point = req.query.start;
@@ -16,13 +11,15 @@ exports.draw_path = function(req, res) {
     var route_type = req.query.routeType;
 
     var token_options = { method: 'GET',
-        url: "https://127.0.0.1/authtoken"
+        url: "http://139.59.253.165/authtoken"
     };
 
     request(token_options, function(err, response, body) {
 
-        console.log(body);
-        var token = response.body.access_token;
+        if (err) throw new Error(err);
+	    console.log(body);
+        var parsed_list = JSON.parse(body);
+        var token = parsed_list['access_token'];
 
         var options = {
             method: 'GET',

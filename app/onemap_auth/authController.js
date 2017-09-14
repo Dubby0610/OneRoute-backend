@@ -20,15 +20,15 @@ exports.get_new_token = function(req, res) {
 
     request(options, function (error, response, body) {
         if (error) throw new Error(error);
-
-        var parsedBody = JSON.parse(body);
-        var new_token = new Token(parsedBody);
-        new_token.save(function(err, token) {
-            console.log(token);
-            if (err)
-            res.send(err);
-            res.send(token);
-        });
+	res.send(body);
+        //var parsedBody = JSON.parse(body);
+        //var new_token = new Token(parsedBody);
+        //new_token.save(function(err, token) {
+        //    console.log(token);
+        //    if (err)
+        //    res.send(err);
+        //    res.send(token);
+        //});
     });
 };
 
