@@ -9,9 +9,9 @@ module.exports = function(app) {
         .get(onemap_auth.get_new_token);
 
     app.route('/search')
-        .post(onemap.get_coords);
+        .get(onemap.get_coords);
 
     app.route('/route')
-        .post(onemap.draw_path);
+        .get(onemap.draw_path);
 
 };
