@@ -16,9 +16,6 @@ exports.draw_path = function(req, res) {
 
     request(token_options, function(err, response, body) {
 
-        res.header("Access-Control-Allow-Origin", "*");
-        res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-
         if (err) throw new Error(err);
 	    console.log(body);
         var parsed_list = JSON.parse(body);
