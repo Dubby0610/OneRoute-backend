@@ -11,7 +11,7 @@ exports.draw_path = function(req, res) {
     var route_type = req.query.routeType;
 
     var token_options = { method: 'GET',
-        url: "http://139.59.253.165/authtoken"
+        url: "http://139.59.253.165/onemap/authtoken"
     };
 
     request(token_options, function(err, response, body) {

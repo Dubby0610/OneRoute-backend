@@ -1,4 +1,22 @@
-function routeReq(start, end, mode) {
+'use strict';
+
+exports.request_route = function (req, res) {
+    var start_point = req.query.start;
+    var end_point = req.query.end;
+    var route_type = req.query.mode;
+
+    var result = routeReq(start_point, end_point, route_type);
+    res.send(result);
+};
+
+exports.request_search = function (req, res) {
+    var search_value = req.query.searchVal;
+    var result = searchReq(search_value);
+    res.send(result);
+
+};
+
+function routeReq (start, end, mode) {
     var startcoord = start[1] + "," + start[0];
     var endcoord = end[1] + "," + end[0];
     // var startcoord = start;
@@ -40,7 +58,7 @@ function routeReq(start, end, mode) {
     });
 }
 
-function searchReq(query) {
+function searchReq (query) {
     $.ajax({
         method: "GET",
         url: "http://onemap.duckdns.org/search",
