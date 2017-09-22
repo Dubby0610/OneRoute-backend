@@ -56,6 +56,13 @@ function route_OneMap(Point, Point, movement_var [walk, cycle, drive, pt]) {
 
 
  */
+const api_calls = require('api_calls.js');
+const turf = require('@turf/turf');
+const elev = require('elevation.js');
+
+/*
+
+ */
 
 var testpoint = turf.point([103.7349, 1.3572]);
 // Datasets
@@ -138,16 +145,99 @@ function getRoutesfromEntryPoints(entry_pts) {
     return turf.featureCollection(routes_array);
 }
 
+function appendDifficultytoRoutes(routesArray) {
+    for (var i = 0; i < routesArray.length; i++) {
+        var route = routesArray[i]["features"][0];
+        var difficulty = elev.getRouteDifficulty(route["geometry"]["coordinates"]);
+        route["difficulty"] = difficulty;
+        console.log(route["difficulty"]);
+    }
+    return routesArray;
+}
+
+function appendDistancetoRoutes(routesArray) {
+    for (var i = 0; i < routesArray.length; i++) {
+        var route = routesArray[i]["features"][0];
+        var distance = turf.lineDistance(route, 'kilometers');
+        route["distance"] = distance;
+        console.log(route["distance"]);
+    }
+    return routesArray;
+}
+
+function filterbyDifficulty(diff, routesArray) {
+    var filteredroutes = [];
+    for (var i = 0; i < routesArray.length; i++) {
+        var route = routesArray[i]["features"][0];
+        if (route["difficulty"] <= diff) {
+            filteredroutes.push(routesArray[i]);
+        }
+    }
+
+    return routesArray;
+}
+
+function filterbyDistance(dist, routesArray) {
+    var filteredroutes = [];
+    for (var i = 0; i < routesArray.length; i++) {
+        var route = routesArray[i]["features"][0];
+        if (route["difficulty"] <= dist) {
+            filteredroutes.push(routesArray[i]);
+        }
+    }
+
+    return routesArray;
+}
+
+function getSameRoutes(routefeatCol1, routefeatCol2) {
+    var route1 = routefeatCol1["features"];
+    var route2 = routefeatCol2["features"];
+    var routes = [];
+    for (var i = 0; i < route1.length; i++) {
+        for (var j = 0; j < route2.length; j++) {
+            if (route1[i].id === route2[j].id) {
+                routes.push(route1);
+            }
+        }
+    }
+    return turf.featureCollection(routes);
+}
+
+function connectRoutes(start_pt, end_pt, mode, route_array) {
+    for (var i = 0; i < route_array.length; i++) {
+        var route_start_pt = route_array[i]["features"][1];
+        var route_end_pt = route_array[i]["features"][2];
+        var route_coords = route_array[i]["features"][0]["geometry"]["coordinates"];
+
+        var starting_route_coords = (api_calls.routeReq(start_pt, route_start_pt, mode)).main;
+        var ending_route_coords = (api_calls.routeReq(end_pt, route_end_pt, mode)).main;
+        route_coords = starting_route_coords.concat(route_coords, ending_route_coords);
+
+    }
+    return route_array;
+}
+
+
 // Formatting functions
-function routestoFeatureCollectionArray(routes, entry_points) {
+
+function routestoFeatureCollectionArray(routes, entry_points, exit_points) {
     var featCol_array = [];
-    var pts_array = entry_points["features"];
+    var entry_pts_array = entry_points["features"];
+    var exit_pts_array = exit_points["features"];
     var lines_array = routes["features"];
     for (var i = 0; i < lines_array.length; i++) {
         featCol_array[i] = [lines_array[i]];
-        for (var j = 0; j < pts_array.length; j++) {
-            if (isPointonLine(lines_array[i], pts_array[j])) {
-                featCol_array[i].push(pts_array[j]);
+        for (var j = 0; j < entry_pts_array.length; j++) {
+            if (isPointonLine(lines_array[i], entry_pts_array[j])) {
+                featCol_array[i].push(entry_pts_array[j]);
+            }
+        }
+    }
+
+    for (var i = 0; i < lines_array.length; i++) {
+        for (var j = 0; j < exit_pts_array.length; j++) {
+            if (isPointonLine(lines_array[i], exit_pts_array[j])) {
+                featCol_array[i].push(exit_pts_array[j]);
             }
         }
         featCol_array[i] = turf.featureCollection(featCol_array[i]);
@@ -189,7 +279,8 @@ function getFeatures(pt, radius) {
     var nearbyEntryPoints = getPointsinROI(inputROI, pcn_access_points);
     var nearbyParks = getPointsinROI(inputROI, national_parks);
     var nearbyRoutes = getRoutesfromEntryPoints(nearbyEntryPoints);
-    var routeFeatColArray = routestoFeatureCollectionArray(nearbyRoutes, nearbyEntryPoints);
+    var nearbyRoutes_with_difficulty = appendDifficultytoRoutes(nearbyRoutes);
+    var routeFeatColArray = routestoFeatureCollectionArray(nearbyRoutes_with_difficulty, nearbyEntryPoints);
 
     var feat_col_arr = [
         turf.featureCollection([inputPoint]),
@@ -207,15 +298,40 @@ function getFeaturesBbox(bbox) {
     var nearbyEntryPoints = getPointsinROI(bbox_Polygon, pcn_access_points);
     var nearbyParks = getPointsinROI(bbox_Polygon, national_parks);
     var nearbyRoutes = getRoutesfromEntryPoints(nearbyEntryPoints);
-
+    var nearbyRoutes_with_difficulty = appendDifficultytoRoutes(nearbyRoutes);
     var feat_col_arr = [
         bbox_Polygon,
         nearbyEntryPoints,
         nearbyParks,
-        nearbyRoutes
+        nearbyRoutes_with_difficulty
     ];
 
     return mergeFeatureCollections(feat_col_arr);
+}
+
+// MAIN API HERE ------------------------------------------------------------------------------------------------------>
+function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
+    var startPoint = turf.point(start_point);
+    var startROI = regionofInterest(startPoint, radius);
+
+    var endPoint = turf.point(end_point);
+    var endROI = regionofInterest(endPoint, radius);
+
+    var startEntryPoints = getPointsinROI(startROI, pcn_access_points);
+    var endEntryPoints = getPointsinROI(endROI, pcn_access_points);
+    var start_routes = getRoutesfromEntryPoints(startEntryPoints);
+    var end_routes = getRoutesfromEntryPoints(endEntryPoints);
+    var sameRoutes = getSameRoutes(start_routes, end_routes);
+    var routeArray = routestoFeatureCollectionArray(sameRoutes, startEntryPoints, endEntryPoints);
+    var connectedRoutes = connectRoutes(startPoint, endPoint, mode, routeArray);
+
+
+    var routeswithDifficulty = appendDifficultytoRoutes(connectedRoutes);
+    var routeswithtags = appendDistancetoRoutes(routeswithDifficulty);
+
+
+    // filter accordin to distance and difficulty
+    return filterbyDistance(filterbyDifficulty(routeswithtags));
 }
 
 //Frontend Test
