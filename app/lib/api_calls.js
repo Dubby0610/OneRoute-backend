@@ -6,30 +6,14 @@ var request = require("request");
 exports.request_route = function (req, res) {
     var start_point = req.query.start;
     var end_point = req.query.end;
-    var route_type = req.query.mode;
+    var mode = req.query.mode;
 
-    var result = routeReq(start_point, end_point, route_type);
-    res.send(result);
-};
-
-exports.request_search = function (req, res) {
-    var search_value = req.query.searchVal;
-    var result = searchReq(search_value);
-    res.send(result);
-
-};
-
-function routeReq (start, end, mode) {
-    var startcoord = start[1] + "," + start[0];
-    var endcoord = end[1] + "," + end[0];
-    // var startcoord = start;
-    // var endcoord = end;
     var route_options = {
         method: "GET",
-        url: "http://onemap.duckdns.org/route",
-        data: {
-            start: startcoord,
-            end: endcoord,
+        url: "http://onemap.duckdns.org/onemap/route",
+        qs: {
+            start: start_point,
+            end: end_point,
             routeType: mode
         }
     };
@@ -54,20 +38,24 @@ function routeReq (start, end, mode) {
 
         parsed_result["main"] = turf.feature(featuregeom(result));
         parsed_result["alternative"] = [];
-        for (var i = 0; i < result["alternativeroute"].length; i++) {
-            parsed_result["alternative"][i] = turf.feature(featuregeom(result["alternativeroute"][i]))
+        if (result["alternativeroute"]) {
+            for (var i = 0; i < result["alternativeroute"].length; i++) {
+                parsed_result["alternative"][i] = turf.feature(featuregeom(result["alternativeroute"][i]))
+            }
         }
         console.log(parsed_result);
-        return parsed_result;
+        res.send(parsed_result);
     });
-}
+};
 
-function searchReq (query) {
+exports.request_search = function (req, res) {
+    var search_value = req.query.searchVal;
+
     var search_options = {
         method: "GET",
         url: "http://onemap.duckdns.org/search",
-        data: {
-            searchVal: query,
+        qs: {
+            searchVal: search_value,
             getAddrDetails: "Y",
             returnGeom: "N"
         }
@@ -94,6 +82,6 @@ function searchReq (query) {
             array_of_features[i] = turf.feature(featurepoint(result["results"][i]))
         }
         console.log(array_of_features);
-        return array_of_features;
+        res.send(array_of_features);
     });
-}
+};
