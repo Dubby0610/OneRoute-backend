@@ -545,10 +545,10 @@ function getFeaturesBbox(bbox) {
 // MAIN API HERE ------------------------------------------------------------------------------------------------------>
 function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
     var startPoint = turf.point(start_point);
-    var startROI = regionofInterest(startPoint, radius);
+    var startROI = regionofInterest(startPoint, distance / 2);
 
     var endPoint = turf.point(end_point);
-    var endROI = regionofInterest(endPoint, radius);
+    var endROI = regionofInterest(endPoint, distance / 2);
 
     var startEntryPoints = getPointsinROI(startROI, pcn_access_points);
     var endEntryPoints = getPointsinROI(endROI, pcn_access_points);
