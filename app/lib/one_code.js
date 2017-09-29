@@ -567,6 +567,17 @@ function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
     return filterbyDistance(distance, filterbyDifficulty(difficulty, routeswithtags));
 }
 
+exports.get_features = function (req, res) {
+    var mode = req.query.mode;
+    var start_point = req.query.start;
+    var end_point = req.query.end;
+    var distance = req.query.dist;
+    var difficulty = req.query.diff;
+
+    var result = getFeaturesonReq(mode, start_point, end_point, distance, difficulty);
+    res.send(result);
+};
+
 //Frontend Test
 
 // var test_str = JSONtoString(getEntryPointsAround(testpoint, 1.5));

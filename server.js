@@ -20,7 +20,7 @@ app.use(function(req, res, next) {
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-var onemap = require('./app/onemap/omRoutes'); //importing route
+var onemap = require('./app/router'); //importing route
 onemap(app); //register the route
 
 app.listen(port);

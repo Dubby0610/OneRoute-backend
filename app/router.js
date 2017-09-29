@@ -1,8 +1,9 @@
 'use strict';
 
 module.exports = function(app) {
-    var onemap = require('../onemap/omController');
-    var onemap_auth = require('../onemap_auth/authController');
+    var onemap = require('./onemap/omController');
+    var onemap_auth = require('./onemap_auth/authController');
+    var api = require('./lib/one_code');
 
     // One Map Routes
     app.route('/onemap/authtoken')
@@ -15,5 +16,7 @@ module.exports = function(app) {
         .get(onemap.draw_path);
 
     // API Routes
+    app.route('/api/route')
+        .get(api.get_features);
 
 };
