@@ -76,8 +76,8 @@ function routeReq (start, end, mode) {
             routeType: mode
         }
     };
-    var parsed_result = {};
-    request(route_options, function(err, response, body) {
+
+    var returned_result = request(route_options, function(err, response, body) {
         if (err) throw new Error(err);
         // console.log(response.statusCode);
         var result = JSON.parse(body);
@@ -100,16 +100,20 @@ function routeReq (start, end, mode) {
             return turf.lineString(coords, properties);
         }
 
-        parsed_result["main"] = feature_from_api(result);
+        var parsed_result = {
+            main: feature_from_api(result)
+        };
         // parsed_result["alternative"] = [];
         // if (result["alternativeroute"]) {
         //     for (var i = 0; i < result["alternativeroute"].length; i++) {
         //         parsed_result["alternative"][i] = feature_from_api(result["alternativeroute"][i]);
         //     }
         // }
+        return parsed_result;
     });
-    console.log(parsed_result);
-    return parsed_result;
+
+    console.log(returned_result);
+    return returned_result;
 }
 
 function searchReq (searchVal) {
