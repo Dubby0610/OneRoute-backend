@@ -380,7 +380,7 @@ function getRoutesfromEntryPoints(entry_pts) {
 function appendDifficultytoRoutes(routesArray) {
     for (var i = 0; i < routesArray.length; i++) {
         var route = routesArray[i]["features"][0];
-        var difficulty = getRouteDifficulty(route["geometry"]["coordinates"]);
+        var difficulty = getRouteDifficulty(turf.getCoords(route));
         route["difficulty"] = difficulty;
         console.log(route["difficulty"]);
     }
@@ -428,7 +428,7 @@ function getSameRoutes(routefeatCol1, routefeatCol2) {
     for (var i = 0; i < route1.length; i++) {
         for (var j = 0; j < route2.length; j++) {
             if (route1[i].id === route2[j].id) {
-                routes.push(route1);
+                routes.push(route1[i]);
             }
         }
     }
@@ -436,14 +436,16 @@ function getSameRoutes(routefeatCol1, routefeatCol2) {
 }
 
 function connectRoutes(start_pt, end_pt, mode, route_array) {
+    var start_coords = turf.getCoord(start_pt);
+    var end_coords = turf.getCoord(end_pt);
     for (var i = 0; i < route_array.length; i++) {
-        var route_start_pt = route_array[i]["features"][1];
-        var route_end_pt = route_array[i]["features"][2];
-        var route_coords = route_array[i]["features"][0]["geometry"]["coordinates"];
+        var route_start_coords = turf.getCoord(route_array[i]["features"][1]);
+        var route_end_coords = turf.getCoord(route_array[i]["features"][2]);
+        var route_coords = turf.getCoords(route_array[i]["features"][0]);
 
-        var starting_route_coords = (routeReq(start_pt, route_start_pt, mode)).main;
-        var ending_route_coords = (routeReq(end_pt, route_end_pt, mode)).main;
-        route_coords = starting_route_coords.concat(route_coords, ending_route_coords);
+        var starting_route_coords = turf.getCoords((routeReq(start_coords, route_start_coords, mode)).main);
+        var ending_route_coords = turf.getCoords((routeReq(end_coords, route_end_coords, mode)).main);
+        route_array[i]["features"][0].geometry.coordinates = starting_route_coords.concat(route_coords, ending_route_coords);
 
     }
     return route_array;
