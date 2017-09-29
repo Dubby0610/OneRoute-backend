@@ -584,9 +584,9 @@ exports.get_features = function (req, res) {
 // var test_str = JSONtoString(remove_description(getRoutesfromEntryPoints(getEntryPointsAround(testpoint, 1.5))));
 // var test_str = JSONtoString(remove_description(getRoutes([103.7349, 1.3572], 1.5)));
 // var test_str = JSONtoString(remove_description(getFeatures([103.7349, 1.3572], 3)));
-var test_str = JSONtoString(remove_description(getFeaturesBbox([103.7349, 1.3572, 103.80, 1.37])));
-$(document).ready(function () {
-    $("#test").text(test_str);
-    routeReq([103.73, 1.3572], [103.80, 1.37], "cycle");
-
-});
+// var test_str = JSONtoString(remove_description(getFeaturesBbox([103.7349, 1.3572, 103.80, 1.37])));
+// $(document).ready(function () {
+//    $("#test").text(test_str);
+//    routeReq([103.73, 1.3572], [103.80, 1.37], "cycle");
+//
+// });

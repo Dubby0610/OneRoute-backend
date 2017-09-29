@@ -1,7 +1,7 @@
 'use strict';
-var request = require("request"),
-    mongoose = require("mongoose"),
-    Token = mongoose.model("Token");
+var request = require("request");
+//    mongoose = require("mongoose"),
+//    Token = mongoose.model("Token");
 
 var USER_ID = process.env.USER_ID;
 var USER_PASS = process.env.USER_PASS;
