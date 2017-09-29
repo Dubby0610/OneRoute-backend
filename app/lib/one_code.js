@@ -57,14 +57,14 @@ function route_OneMap(Point, Point, movement_var [walk, cycle, drive, pt]) {
 
  */
 var turf = require('@turf/turf');
-var polyline = require('@mapbox/polyline');
+var polyUtil = require('polyline-encoded');
 var request = require("request");
 
 
 //------------------------------- INTERNAL SERVER CALLS TO ONEMAP ---------------------------------------------------//
 function routeReq (start, end, mode) {
-    var start_point = start;
-    var end_point = end;
+    var start_point = start.reverse();
+    var end_point = end.reverse();
     var mode = mode;
 
     var route_options = {
@@ -88,16 +88,25 @@ function routeReq (start, end, mode) {
                 "route_name": featurejson["route_name"],
                 "route_summary": featurejson["route_summary"]
             };
-            return turf.lineString(polyline.decode(featurejson["route_geometry"]), properties);
+            var encoded = featurejson["route_geometry"];
+            if (encoded !== undefined || encoded !== '' || encoded != null ) {
+                var latlngs = polyUtil.decode(encoded, {
+                    precision: 6
+                });
+               var coords = latlngs.map(function(list) {return list.reverse();});
+            } else {
+                coords = [];
+            }
+            return turf.lineString(coords, properties);
         }
 
         parsed_result["main"] = feature_from_api(result);
-        parsed_result["alternative"] = [];
-        if (result["alternativeroute"]) {
-            for (var i = 0; i < result["alternativeroute"].length; i++) {
-                parsed_result["alternative"][i] = feature_from_api(result["alternativeroute"][i]);
-            }
-        }
+        // parsed_result["alternative"] = [];
+        // if (result["alternativeroute"]) {
+        //     for (var i = 0; i < result["alternativeroute"].length; i++) {
+        //         parsed_result["alternative"][i] = feature_from_api(result["alternativeroute"][i]);
+        //     }
+        // }
         console.log(parsed_result);
     });
 
