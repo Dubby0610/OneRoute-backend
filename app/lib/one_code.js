@@ -581,7 +581,7 @@ exports.get_features = function (req, res) {
 
     var result = getFeaturesonReq(mode, sp_array, ep_array, distance, difficulty);
     console.log(result);
-    res.json(result);
+    res.send(result);
 };
 
 //Frontend Test
