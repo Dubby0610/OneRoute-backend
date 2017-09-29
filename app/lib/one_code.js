@@ -564,7 +564,7 @@ function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
 
 
     // filter accordin to distance and difficulty
-    return filterbyDistance(filterbyDifficulty(routeswithtags));
+    return filterbyDistance(distance, filterbyDifficulty(difficulty, routeswithtags));
 }
 
 //Frontend Test
