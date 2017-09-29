@@ -82,23 +82,20 @@ function routeReq (start, end, mode) {
         console.log(body);
         var result = JSON.parse(body);
 
-        function featuregeom(featurejson) {
-            return {
-                "type": "LineString",
-                "coordinates": polyline.decode(featurejson["route_geometry"]),
-                "properties": {
-                    "route_instructions": featurejson["route_instructions"],
-                    "route_name": featurejson["route_name"],
-                    "route_summary": featurejson["route_summary"]
-                }
-            }
+        function feature_from_api(featurejson) {
+            var properties = {
+                "route_instructions": featurejson["route_instructions"],
+                "route_name": featurejson["route_name"],
+                "route_summary": featurejson["route_summary"]
+            };
+            return turf.lineString(polyline.decode(featurejson["route_geometry"]), properties);
         }
 
-        parsed_result["main"] = turf.feature(featuregeom(result));
+        parsed_result["main"] = feature_from_api(result);
         parsed_result["alternative"] = [];
         if (result["alternativeroute"]) {
             for (var i = 0; i < result["alternativeroute"].length; i++) {
-                parsed_result["alternative"][i] = turf.feature(featuregeom(result["alternativeroute"][i]))
+                parsed_result["alternative"][i] = feature_from_api(result["alternativeroute"][i]);
             }
         }
         console.log(parsed_result);
@@ -581,7 +578,7 @@ exports.get_features = function (req, res) {
 
     var result = getFeaturesonReq(mode, sp_array, ep_array, distance, difficulty);
     console.log(result);
-    res.send(result);
+    res.json(result);
 };
 
 //Frontend Test
