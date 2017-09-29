@@ -107,9 +107,8 @@ function routeReq (start, end, mode) {
         //         parsed_result["alternative"][i] = feature_from_api(result["alternativeroute"][i]);
         //     }
         // }
-        console.log(parsed_result);
     });
-
+    console.log(parsed_result);
     return parsed_result;
 }
 
@@ -448,9 +447,8 @@ function connectRoutes(start_pt, end_pt, mode, route_array) {
         var route_start_coords = turf.getCoord(route_array[i]["features"][1]);
         var route_end_coords = turf.getCoord(route_array[i]["features"][2]);
         var route_coords = turf.getCoords(route_array[i]["features"][0]);
-
-        var starting_route_coords = turf.getCoords((routeReq(start_coords, route_start_coords, mode)).main);
-        var ending_route_coords = turf.getCoords((routeReq(end_coords, route_end_coords, mode)).main);
+        var starting_route_coords = turf.getCoords((routeReq(start_coords, route_start_coords, mode))["main"]);
+        var ending_route_coords = turf.getCoords((routeReq(end_coords, route_end_coords, mode))["main"]);
         route_array[i]["features"][0].geometry.coordinates = starting_route_coords.concat(route_coords, ending_route_coords);
 
     }
@@ -587,7 +585,7 @@ exports.get_features = function (req, res) {
 
     var result = getFeaturesonReq(mode, sp_array, ep_array, distance, difficulty);
     console.log(result);
-    res.json(result);
+    res.send(result);
 };
 
 //Frontend Test
