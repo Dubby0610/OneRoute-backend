@@ -71,15 +71,15 @@ function routeReq (start, end, mode) {
         method: "GET",
         url: "http://onemap.duckdns.org/onemap/route",
         qs: {
-            start: start_point,
-            end: end_point,
+            start: start_point.toString(),
+            end: end_point.toString(),
             routeType: mode
         }
     };
     var parsed_result = {};
     request(route_options, function(err, response, body) {
         if (err) throw new Error(err);
-        console.log(body);
+        // console.log(response.statusCode);
         var result = JSON.parse(body);
 
         function feature_from_api(featurejson) {
