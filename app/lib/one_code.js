@@ -87,7 +87,8 @@ function routeReq (start, end, mode) {
         });
     }
 
-    async().then(function (body) {
+    return async().then(function (body) {
+
         var result = JSON.parse(body);
         function feature_from_api(featurejson) {
             var properties = {
@@ -454,17 +455,35 @@ function getSameRoutes(routefeatCol1, routefeatCol2) {
 function connectRoutes(start_pt, end_pt, mode, route_array) {
     var start_coords = turf.getCoord(start_pt);
     var end_coords = turf.getCoord(end_pt);
+
+    var promise_array = [];
     for (var i = 0; i < route_array.length; i++) {
-        var route_start_coords = turf.getCoord(route_array[i]["features"][1]);
-        var route_end_coords = turf.getCoord(route_array[i]["features"][2]);
-        var route_coords = turf.getCoords(route_array[i]["features"][0]);
+        promise_array[i] = new Promise(function (fulfill, reject) {
 
-        var starting_route_coords = turf.getCoords((routeReq(start_coords, route_start_coords, mode))["main"]);
-        var ending_route_coords = turf.getCoords((routeReq(end_coords, route_end_coords, mode))["main"]);
-        route_array[i]["features"][0].geometry.coordinates = starting_route_coords.concat(route_coords, ending_route_coords);
+            var route_start_coords = turf.getCoord(route_array[i]["features"][1]);
+            var route_end_coords = turf.getCoord(route_array[i]["features"][2]);
+            var route_coords = turf.getCoords(route_array[i]["features"][0]);
 
+            //create promise array
+            var route_promise_arr = [routeReq(start_coords, route_start_coords, mode), routeReq(end_coords, route_end_coords, mode)];
+            //returns a promise chain
+            return Promise.all(route_promise_arr).then(function (res) {
+                var starting_route_coords = turf.getCoords(res[0]["main"]);
+                var ending_route_coords = turf.getCoords(res[1]["main"]);
+                return starting_route_coords.concat(route_coords, ending_route_coords);
+                    //
+                });
+
+
+
+        });
     }
-    return route_array;
+    return Promise.all(promise_array).then(function (res) {
+        for (var i = 0; i < res.length; i++) {
+            route_array[i]["features"][0].geometry.coordinates = res[i];
+        }
+        return route_array;
+    });
 }
 
 
@@ -574,16 +593,28 @@ function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
     var end_routes = getRoutesfromEntryPoints(endEntryPoints);
     var sameRoutes = getSameRoutes(start_routes, end_routes);
     var routeArray = routestoFeatureCollectionArray(sameRoutes, startEntryPoints, endEntryPoints);
-    var connectedRoutes = connectRoutes(startPoint, endPoint, mode, routeArray);
 
-
-    var routeswithDifficulty = appendDifficultytoRoutes(connectedRoutes);
-    var routeswithtags = appendDistancetoRoutes(routeswithDifficulty);
-
-
-    // filter accordin to distance and difficulty
-    return filterbyDistance(distance, filterbyDifficulty(difficulty, routeswithtags));
+    //async command
+    return connectRoutes(startPoint, endPoint, mode, routeArray).then(function (res) {
+        return FilterRoutes(res, difficulty);
+    });
 }
+
+function FilterRoutes(res, difficulty) {
+        var routeswithDifficulty = appendDifficultytoRoutes(res);
+        var routeswithtags = appendDistancetoRoutes(routeswithDifficulty);
+        // filter accordin to distance and difficulty
+        return filterbyDistance(distance, filterbyDifficulty(difficulty, routeswithtags));
+}
+// function async() {
+//     return new Promise(function (resolve, reject) {
+//         request(route_options, function(err, response, body) {
+//             if (err) { return reject(err); }
+//             // console.log(response.statusCode);
+//             else { return resolve(body); }
+//         });
+//     });
+// }
 
 exports.get_features = function (req, res) {
     var mode = req.query.mode;
@@ -595,9 +626,10 @@ exports.get_features = function (req, res) {
     var sp_array = JSON.parse("[" + start_point + "]");
     var ep_array = JSON.parse("[" + end_point + "]");
 
-    var result = getFeaturesonReq(mode, sp_array, ep_array, distance, difficulty);
-    console.log(result);
-    res.send(result);
+    getFeaturesonReq(mode, sp_array, ep_array, distance, difficulty).then(function(result) {
+        console.log(result);
+        res.send(result);
+    })
 };
 
 //Frontend Test
