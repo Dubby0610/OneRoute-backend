@@ -59,7 +59,7 @@ function route_OneMap(Point, Point, movement_var [walk, cycle, drive, pt]) {
 var turf = require('@turf/turf');
 var polyUtil = require('polyline-encoded');
 var request = require("request");
-
+var Promise = require("promise");
 
 //------------------------------- INTERNAL SERVER CALLS TO ONEMAP ---------------------------------------------------//
 function routeReq (start, end, mode) {
@@ -77,11 +77,18 @@ function routeReq (start, end, mode) {
         }
     };
 
-    var returned_result = request(route_options, function(err, response, body) {
-        if (err) throw new Error(err);
-        // console.log(response.statusCode);
-        var result = JSON.parse(body);
+    function async() {
+        return new Promise(function (resolve, reject) {
+            request(route_options, function(err, response, body) {
+            if (err) { return reject(err); }
+            // console.log(response.statusCode);
+            else { return resolve(body); }
+            });
+        });
+    }
 
+    async().then(function (body) {
+        var result = JSON.parse(body);
         function feature_from_api(featurejson) {
             var properties = {
                 "route_instructions": featurejson["route_instructions"],
@@ -109,11 +116,11 @@ function routeReq (start, end, mode) {
         //         parsed_result["alternative"][i] = feature_from_api(result["alternativeroute"][i]);
         //     }
         // }
+        console.log(parsed_result);
         return parsed_result;
+    }).catch( function (err) {
+        console.log("%s", err);
     });
-
-    console.log(returned_result);
-    return returned_result;
 }
 
 function searchReq (searchVal) {
@@ -451,6 +458,7 @@ function connectRoutes(start_pt, end_pt, mode, route_array) {
         var route_start_coords = turf.getCoord(route_array[i]["features"][1]);
         var route_end_coords = turf.getCoord(route_array[i]["features"][2]);
         var route_coords = turf.getCoords(route_array[i]["features"][0]);
+
         var starting_route_coords = turf.getCoords((routeReq(start_coords, route_start_coords, mode))["main"]);
         var ending_route_coords = turf.getCoords((routeReq(end_coords, route_end_coords, mode))["main"]);
         route_array[i]["features"][0].geometry.coordinates = starting_route_coords.concat(route_coords, ending_route_coords);
