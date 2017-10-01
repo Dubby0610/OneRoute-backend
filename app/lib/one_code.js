@@ -1,61 +1,3 @@
-/*
-
-BACKEND PROCESSING
-
-turf.js
--npm
-	install @turf/intersect
--npm
-	install @turf/nearest
--npm
-	install @turf/circle
--npm
-	install @turf/line-overlap
--npm
-	install @turf/point-on-line
--npm
-	install @turf/inside
--npm
-	install @turf/line-slice
-
-
-
-DATASET PROCESSING
-
-toGeoJson
-
-	-npm install -g @mapbox/togeojson
-
-
-using jQuery:
-GET OneMap Routing API
-
-
-function getPoint(from_frontend) {
-
-	returns Point (x, y)
-
-}
-
-
-
-function nearestFeatures(Point, Radius, FeatureSet) {
-
-    returns FeatureCollection (JSON of GeoJSON features)
-
-}
-
-
-
-function route_OneMap(Point, Point, movement_var [walk, cycle, drive, pt]) {
-
-    returns one_map API call for routing between 2 points
-
-}
-
-
-
- */
 var turf = require('@turf/turf');
 var polyUtil = require('polyline-encoded');
 var request = require("request");
@@ -98,9 +40,7 @@ function routeReq (start, end, mode) {
             };
             var encoded = featurejson["route_geometry"];
             if (encoded !== undefined || encoded !== '' || encoded != null ) {
-                var latlngs = polyUtil.decode(encoded, {
-                    precision: 6
-                });
+                var latlngs = polyUtil.decode(encoded);
                var coords = latlngs.map(function(list) {return list.slice().reverse();});
             } else {
                 coords = [];
@@ -117,7 +57,7 @@ function routeReq (start, end, mode) {
         //         parsed_result["alternative"][i] = feature_from_api(result["alternativeroute"][i]);
         //     }
         // }
-        // console.log(parsed_result);
+//        console.log(parsed_result);
         return parsed_result;
     }).catch( function (err) {
         console.log("%s", err);
@@ -164,7 +104,8 @@ function searchReq (searchVal) {
 //--------------------------------------------------------------------------------------------------------------------//
 
 //---------------------------------------- ELEVATION & DIFFICULTY FUNCTIONS ------------------------------------------//
-var elevation = require('./data/elevation_SGP');
+var elevation = require('./data/elevation_SGP.json');
+
 var origin = [103.6, 1.16];
 var pixel_size = 0.0002; // Pixels are squares
 /**
@@ -205,6 +146,9 @@ function getElevation(p){
 
 function getElevationFromCoords(pair) {
     var pixelcoords = lonlatToPixel(pair);
+    //TODO: ACCESS ELEVATION
+    //CODE STOPS HERE
+    console.log(typeof elevation);
     return elevation[pixelcoords[0]][pixelcoords[1]];
 }
 
@@ -221,6 +165,7 @@ function getElevationFromCoords(pair) {
  */
 function getClimbs(route){
     var elevations = route.map(getElevationFromCoords);
+    console.log("BEEPBEEP");
     var step_size = 1; // Define sampling rate
     // Initialize
     var climbs = [];
@@ -301,7 +246,7 @@ function getClimbDifficulty(climb){
  */
 function getRouteDifficulty(route){
     var climbs = getClimbs(route);
-    // console.log(climbs);
+   // console.log(climbs);
     if (climbs.length === 0) {
         return 1;
     } else {
@@ -398,7 +343,8 @@ function appendDifficultytoRoutes(routesArray) {
     for (var i = 0; i < routesArray.length; i++) {
         var route = routesArray[i]["features"][0];
         var difficulty = getRouteDifficulty(turf.getCoords(route));
-        route["difficulty"] = difficulty;
+        console.log("HELLO");
+	route["difficulty"] = difficulty;
         console.log(route["difficulty"]);
     }
     return routesArray;
@@ -455,7 +401,6 @@ function getSameRoutes(routefeatCol1, routefeatCol2) {
 function connectRoutes(start_pt, end_pt, mode, route_array) {
     var start_coords = turf.getCoord(start_pt);
     var end_coords = turf.getCoord(end_pt);
-    console.log(route_array);
     var promise_array = [];
     for (var i = 0; i < route_array.length; i++) {
             var route_start_coords = turf.getCoord(route_array[i]["features"][1]);
@@ -468,7 +413,7 @@ function connectRoutes(start_pt, end_pt, mode, route_array) {
             promise_array[i] = Promise.all(route_promise_arr).then(function (res) {
                 var starting_route_coords = turf.getCoords(res[0]["main"]);
                 var ending_route_coords = turf.getCoords(res[1]["main"]);
-                return starting_route_coords.concat(route_coords, ending_route_coords);
+		return starting_route_coords.concat(route_coords, ending_route_coords);
                     //
                 });
     }
@@ -476,7 +421,6 @@ function connectRoutes(start_pt, end_pt, mode, route_array) {
         for (var i = 0; i < res.length; i++) {
             route_array[i]["features"][0].geometry.coordinates = res[i];
         }
-	console.log(route_array);
         return route_array;
     });
 }
@@ -590,9 +534,17 @@ function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
     var routeArray = routestoFeatureCollectionArray(sameRoutes, startEntryPoints, endEntryPoints);
 
     //async command
-    return connectRoutes(startPoint, endPoint, mode, routeArray).then(appendDifficultytoRoutes)
-        .then(appendDistancetoRoutes)
-        .then(function(x) {return filterbyDifficulty(difficulty, x);})
+    return connectRoutes(startPoint, endPoint, mode, routeArray)
+	.then(function(x) { 
+		console.log("RUNNING_0");
+		console.log(x);
+		return appendDifficultytoRoutes(x);})
+        .then(function(x) {
+		console.log("RUNNING_1");
+		return appendDistancetoRoutes(x);})
+        .then(function(x) {
+		console.log("RUNNING");
+		return filterbyDifficulty(difficulty, x);})
         .then(function(x) {return filterbyDistance(distance, x)});
 }
 // function async() {
