@@ -148,7 +148,6 @@ function getElevationFromCoords(pair) {
     var pixelcoords = lonlatToPixel(pair);
     //TODO: ACCESS ELEVATION
     //CODE STOPS HERE
-    console.log(typeof elevation);
     return elevation[pixelcoords[0]][pixelcoords[1]];
 }
 
@@ -165,7 +164,6 @@ function getElevationFromCoords(pair) {
  */
 function getClimbs(route){
     var elevations = route.map(getElevationFromCoords);
-    console.log("BEEPBEEP");
     var step_size = 1; // Define sampling rate
     // Initialize
     var climbs = [];
@@ -343,9 +341,8 @@ function appendDifficultytoRoutes(routesArray) {
     for (var i = 0; i < routesArray.length; i++) {
         var route = routesArray[i]["features"][0];
         var difficulty = getRouteDifficulty(turf.getCoords(route));
-        console.log("HELLO");
 	route["difficulty"] = difficulty;
-        console.log(route["difficulty"]);
+        //console.log(route["difficulty"]);
     }
     return routesArray;
 }
@@ -355,7 +352,7 @@ function appendDistancetoRoutes(routesArray) {
         var route = routesArray[i]["features"][0];
         var distance = turf.lineDistance(route, 'kilometers');
         route["distance"] = distance;
-        console.log(route["distance"]);
+        //console.log(route["distance"]);
     }
     return routesArray;
 }
@@ -399,21 +396,25 @@ function getSameRoutes(routefeatCol1, routefeatCol2) {
 }
 
 function connectRoutes(start_pt, end_pt, mode, route_array) {
+    console.log(route_array);
     var start_coords = turf.getCoord(start_pt);
     var end_coords = turf.getCoord(end_pt);
     var promise_array = [];
     for (var i = 0; i < route_array.length; i++) {
-            var route_start_coords = turf.getCoord(route_array[i]["features"][1]);
-            var route_end_coords = turf.getCoord(route_array[i]["features"][2]);
-            var route_coords = turf.getCoords(route_array[i]["features"][0]);
-
+	    var pcn_entry = route_array[i]["features"][1];
+	    var pcn_exit = route_array[i]["features"][2];
+            var pcn_entry_coords = turf.getCoord(pcn_entry);
+            var pcn_exit_coords = turf.getCoord(pcn_exit);
+            var route = route_array[i]["features"][0];
+	    var sliced_route = turf.lineSlice(pcn_entry, pcn_exit, route);
+	    var sliced_pcn_coords = turf.getCoords(sliced_route);
             //create promise array
-            var route_promise_arr = [routeReq(start_coords, route_start_coords, mode), routeReq(end_coords, route_end_coords, mode)];
+            var route_promise_arr = [routeReq(start_coords, pcn_entry_coords, mode), routeReq(pcn_exit_coords, end_coords, mode)];
 		//returns a promise chain
             promise_array[i] = Promise.all(route_promise_arr).then(function (res) {
                 var starting_route_coords = turf.getCoords(res[0]["main"]);
                 var ending_route_coords = turf.getCoords(res[1]["main"]);
-		return starting_route_coords.concat(route_coords, ending_route_coords);
+		return starting_route_coords.concat(sliced_pcn_coords, ending_route_coords);
                     //
                 });
     }
@@ -536,14 +537,11 @@ function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
     //async command
     return connectRoutes(startPoint, endPoint, mode, routeArray)
 	.then(function(x) { 
-		console.log("RUNNING_0");
-		console.log(x);
+		//console.log(x);
 		return appendDifficultytoRoutes(x);})
         .then(function(x) {
-		console.log("RUNNING_1");
 		return appendDistancetoRoutes(x);})
         .then(function(x) {
-		console.log("RUNNING");
 		return filterbyDifficulty(difficulty, x);})
         .then(function(x) {return filterbyDistance(distance, x)});
 }
@@ -570,7 +568,9 @@ exports.get_features = function (req, res) {
     getFeaturesonReq(mode, sp_array, ep_array, distance, difficulty).then(function(result) {
         console.log(result);
         res.send(result);
-    })
+    }).catch( function (err) {
+	console.log("%s", err);
+    });
 };
 
 //Frontend Test
