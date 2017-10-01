@@ -437,7 +437,7 @@ function routestoFeatureCollectionArray(routes, entry_points, exit_points) {
     for (var i = 0; i < lines_array.length; i++) {
         featCol_array[i] = [lines_array[i]];
         for (var j = 0; j < entry_pts_array.length; j++) {
-            if (isPointonLine(lines_array[i], entry_pts_array[j])) {
+            if (isPointonLine(lines_array[i], entry_pts_array[j]) && featCol_array[i].length === 1) {
                 featCol_array[i].push(entry_pts_array[j]);
             }
         }
@@ -445,7 +445,8 @@ function routestoFeatureCollectionArray(routes, entry_points, exit_points) {
 
     for (var i = 0; i < lines_array.length; i++) {
         for (var j = 0; j < exit_pts_array.length; j++) {
-            if (isPointonLine(lines_array[i], exit_pts_array[j])) {
+            if (isPointonLine(lines_array[i], exit_pts_array[j]) && featCol_array[i].length === 2
+                && exit_pts_array[j] !== featCol_array[i][1]) {
                 featCol_array[i].push(exit_pts_array[j]);
             }
         }
