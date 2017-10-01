@@ -4,7 +4,7 @@ var request = require("request");
 exports.draw_path = function(req, res) {
     // read req for sp (lat,lng), ep (lat,lng), routeType(cycle)
 
-    console.log(req.query);
+//  console.log(req.query);
     var start_point = req.query.start;
     var end_point = req.query.end;
     // route_type must be in lowercase
@@ -32,7 +32,7 @@ exports.draw_path = function(req, res) {
 
         request(options, function (error, response, body) {
             if (error) throw new Error(error);
-            console.log(body);
+//          console.log(body);
             res.send(body);
         });
     });

@@ -63,8 +63,8 @@ var Promise = require("promise");
 
 //------------------------------- INTERNAL SERVER CALLS TO ONEMAP ---------------------------------------------------//
 function routeReq (start, end, mode) {
-    var start_point = start.reverse();
-    var end_point = end.reverse();
+    var start_point = start.slice().reverse();
+    var end_point = end.slice().reverse();
     var mode = mode;
 
     var route_options = {
@@ -101,7 +101,7 @@ function routeReq (start, end, mode) {
                 var latlngs = polyUtil.decode(encoded, {
                     precision: 6
                 });
-               var coords = latlngs.map(function(list) {return list.reverse();});
+               var coords = latlngs.map(function(list) {return list.slice().reverse();});
             } else {
                 coords = [];
             }
@@ -117,7 +117,7 @@ function routeReq (start, end, mode) {
         //         parsed_result["alternative"][i] = feature_from_api(result["alternativeroute"][i]);
         //     }
         // }
-        console.log(parsed_result);
+        // console.log(parsed_result);
         return parsed_result;
     }).catch( function (err) {
         console.log("%s", err);
@@ -455,33 +455,28 @@ function getSameRoutes(routefeatCol1, routefeatCol2) {
 function connectRoutes(start_pt, end_pt, mode, route_array) {
     var start_coords = turf.getCoord(start_pt);
     var end_coords = turf.getCoord(end_pt);
-
+    console.log(route_array);
     var promise_array = [];
     for (var i = 0; i < route_array.length; i++) {
-        promise_array[i] = new Promise(function (fulfill, reject) {
-
             var route_start_coords = turf.getCoord(route_array[i]["features"][1]);
             var route_end_coords = turf.getCoord(route_array[i]["features"][2]);
             var route_coords = turf.getCoords(route_array[i]["features"][0]);
 
             //create promise array
             var route_promise_arr = [routeReq(start_coords, route_start_coords, mode), routeReq(end_coords, route_end_coords, mode)];
-            //returns a promise chain
-            return Promise.all(route_promise_arr).then(function (res) {
+		//returns a promise chain
+            promise_array[i] = Promise.all(route_promise_arr).then(function (res) {
                 var starting_route_coords = turf.getCoords(res[0]["main"]);
                 var ending_route_coords = turf.getCoords(res[1]["main"]);
                 return starting_route_coords.concat(route_coords, ending_route_coords);
                     //
                 });
-
-
-
-        });
     }
     return Promise.all(promise_array).then(function (res) {
         for (var i = 0; i < res.length; i++) {
             route_array[i]["features"][0].geometry.coordinates = res[i];
         }
+	console.log(route_array);
         return route_array;
     });
 }
@@ -596,14 +591,17 @@ function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
 
     //async command
     return connectRoutes(startPoint, endPoint, mode, routeArray).then(function (res) {
-        return FilterRoutes(res, difficulty);
+        return FilterRoutes(res, difficulty, distance);
     });
 }
 
-function FilterRoutes(res, difficulty) {
-        var routeswithDifficulty = appendDifficultytoRoutes(res);
+function FilterRoutes(routeArray, difficulty, distance) {
+        console.log("RUNNING");
+//TODO: promisify bottom 2 functions
+	var routeswithDifficulty = appendDifficultytoRoutes(routeArray);
         var routeswithtags = appendDistancetoRoutes(routeswithDifficulty);
-        // filter accordin to distance and difficulty
+        console.log("FINISHED");
+	// filter accordin to distance and difficulty
         return filterbyDistance(distance, filterbyDifficulty(difficulty, routeswithtags));
 }
 // function async() {
