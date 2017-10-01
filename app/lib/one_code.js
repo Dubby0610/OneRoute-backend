@@ -590,19 +590,10 @@ function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
     var routeArray = routestoFeatureCollectionArray(sameRoutes, startEntryPoints, endEntryPoints);
 
     //async command
-    return connectRoutes(startPoint, endPoint, mode, routeArray).then(function (res) {
-        return FilterRoutes(res, difficulty, distance);
-    });
-}
-
-function FilterRoutes(routeArray, difficulty, distance) {
-        console.log("RUNNING");
-//TODO: promisify bottom 2 functions
-	var routeswithDifficulty = appendDifficultytoRoutes(routeArray);
-        var routeswithtags = appendDistancetoRoutes(routeswithDifficulty);
-        console.log("FINISHED");
-	// filter accordin to distance and difficulty
-        return filterbyDistance(distance, filterbyDifficulty(difficulty, routeswithtags));
+    return connectRoutes(startPoint, endPoint, mode, routeArray).then(appendDifficultytoRoutes)
+        .then(appendDistancetoRoutes)
+        .then(function(x) {return filterbyDifficulty(difficulty, x);})
+        .then(function(x) {return filterbyDistance(distance, x)});
 }
 // function async() {
 //     return new Promise(function (resolve, reject) {
