@@ -4,7 +4,7 @@ var request = require("request");
 var Promise = require("promise");
 
 //------------------------------- INTERNAL SERVER CALLS TO ONEMAP ---------------------------------------------------//
-function routeReq (start, end, mode) {
+function routeReq(start, end, mode) {
     var start_point = start.slice().reverse();
     var end_point = end.slice().reverse();
     var mode = mode;
@@ -21,10 +21,14 @@ function routeReq (start, end, mode) {
 
     function async() {
         return new Promise(function (resolve, reject) {
-            request(route_options, function(err, response, body) {
-            if (err) { return reject(err); }
-            // console.log(response.statusCode);
-            else { return resolve(body); }
+            request(route_options, function (err, response, body) {
+                if (err) {
+                    return reject(err);
+                }
+                // console.log(response.statusCode);
+                else {
+                    return resolve(body);
+                }
             });
         });
     }
@@ -32,6 +36,7 @@ function routeReq (start, end, mode) {
     return async().then(function (body) {
 
         var result = JSON.parse(body);
+
         function feature_from_api(featurejson) {
             var properties = {
                 "route_instructions": featurejson["route_instructions"],
@@ -39,9 +44,11 @@ function routeReq (start, end, mode) {
                 "route_summary": featurejson["route_summary"]
             };
             var encoded = featurejson["route_geometry"];
-            if (encoded !== undefined || encoded !== '' || encoded != null ) {
+            if (encoded !== undefined || encoded !== '' || encoded != null) {
                 var latlngs = polyUtil.decode(encoded);
-               var coords = latlngs.map(function(list) {return list.slice().reverse();});
+                var coords = latlngs.map(function (list) {
+                    return list.slice().reverse();
+                });
             } else {
                 coords = [];
             }
@@ -59,12 +66,12 @@ function routeReq (start, end, mode) {
         // }
 //        console.log(parsed_result);
         return parsed_result;
-    }).catch( function (err) {
+    }).catch(function (err) {
         console.log("%s", err);
     });
 }
 
-function searchReq (searchVal) {
+function searchReq(searchVal) {
 
     var search_options = {
         method: "GET",
@@ -76,7 +83,7 @@ function searchReq (searchVal) {
         }
     };
     var array_of_features = [];
-    request(search_options, function(err, response, body) {
+    request(search_options, function (err, response, body) {
         if (err) throw new Error(err);
         console.log(body);
         var result = JSON.parse(data);
@@ -101,6 +108,7 @@ function searchReq (searchVal) {
 
     return array_of_features;
 }
+
 //--------------------------------------------------------------------------------------------------------------------//
 
 //---------------------------------------- ELEVATION & DIFFICULTY FUNCTIONS ------------------------------------------//
@@ -114,30 +122,30 @@ var pixel_size = 0.0002; // Pixels are squares
  * are snapped to the bottom left of each pixel.
  * Assumes given point is within the map, otherwise UB
  *
- * @param p 	point (long, lat)
- * @return 		Pos of corresponding pixel in 0-indexed 2D array
+ * @param p    point (long, lat)
+ * @return        Pos of corresponding pixel in 0-indexed 2D array
  */
-function pointToPixel(p){
+function pointToPixel(p) {
     // return [Math.floor((p.coordinates[0] - origin[0])/pixel_size),
     //     Math.floor((p.coordinates[1] - origin[1])/pixel_size)];
-    return [Math.floor((p[0] - origin[0])/pixel_size),
-        Math.floor((p[1] - origin[1])/pixel_size)];
+    return [Math.floor((p[0] - origin[0]) / pixel_size),
+        Math.floor((p[1] - origin[1]) / pixel_size)];
 }
 
 function lonlatToPixel(pair) {
-    return [Math.floor((pair[0] - origin[0])/pixel_size),
-        Math.floor((pair[1] - origin[1])/pixel_size)];
+    return [Math.floor((pair[0] - origin[0]) / pixel_size),
+        Math.floor((pair[1] - origin[1]) / pixel_size)];
 }
 
 /**
  * Obtains the elevation of a given point by querying
  * the database
  *
- * @param p 	point
- * @return 		Elevation of point, in metres
+ * @param p    point
+ * @return        Elevation of point, in metres
  */
 
-function getElevation(p){
+function getElevation(p) {
     var pixelLoc = pointToPixel(p);
     // console.log(pixelLoc);
     //queryDBElevation(pixelLoc[0], pixelLoc[1]);
@@ -152,17 +160,15 @@ function getElevationFromCoords(pair) {
 }
 
 
-
-
 /**
  * Extract the climbs from a route. A climb is stored as
  * a tuple of (<start>, <end>), where each marker consists
  * of geographical data in the form (<point>, <elevation>)
  *
- * @param route 	A line of points, representing the route
- * @return 			An array of climbs along the route
+ * @param route    A line of points, representing the route
+ * @return            An array of climbs along the route
  */
-function getClimbs(route){
+function getClimbs(route) {
     var elevations = route.map(getElevationFromCoords);
     var step_size = 1; // Define sampling rate
     // Initialize
@@ -170,23 +176,23 @@ function getClimbs(route){
     var climb_start = 0;
     var work_done = 0;
     var climbing = false;
-    for(var i=step_size, len=route.length; i < len; i+=step_size){
-        if(climbing && elevations[climb_start] <= elevations[i]){
+    for (var i = step_size, len = route.length; i < len; i += step_size) {
+        if (climbing && elevations[climb_start] <= elevations[i]) {
             // Climb ended, record it
             climbing = false;
             climbs.push([[route[climb_start], elevations[climb_start]],
                 [route[i], elevations[i]]]);
-        } else if(!climbing && elevations[i] > elevations[i-step_size]){
+        } else if (!climbing && elevations[i] > elevations[i - step_size]) {
             // Start a climb
             climbing = true;
-            climb_start = i-step_size;
+            climb_start = i - step_size;
         }
     }
     return climbs;
 }
 
 // Define the difficulties
-var level = [[0.25,0.25], [0.5,0.5], [1,1]];
+var level = [[0.25, 0.25], [0.5, 0.5], [1, 1]];
 
 /**
  * Gets the difficulty of a climb.
@@ -206,9 +212,9 @@ var level = [[0.25,0.25], [0.5,0.5], [1,1]];
  * Therefore we can consider <dist> = k/<grade> + c
  * and define 3 difficulty regions by calibrating the
  * constants k and c
- * 		Lvl 1: k = 1, c = 1
- *		Lvl 2: k = 2, c = 2
- *		Lvl 3: k = 3, c = 3
+ *        Lvl 1: k = 1, c = 1
+ *        Lvl 2: k = 2, c = 2
+ *        Lvl 3: k = 3, c = 3
  *
  * A climb (i.e. a (<grade>, <dist>) point) bounded
  * by the difficulty curve and the axes is considered
@@ -218,18 +224,18 @@ var level = [[0.25,0.25], [0.5,0.5], [1,1]];
  *
  * Source: https://www.wired.com/2013/03/whats-the-steepest-gradient-for-a-road-bike/
  *
- * @param climb 	The climb to analyse
- * @return 			The difficulty of the climb [1-5]
+ * @param climb    The climb to analyse
+ * @return            The difficulty of the climb [1-5]
  */
-function getClimbDifficulty(climb){
+function getClimbDifficulty(climb) {
     //turfjs distance is in km
     var dist = turf.distance(turf.point(climb[0][0]), turf.point(climb[1][0]), "kilometers");
     var grade = (climb[1][1] - climb[0][1]) / dist;
     var maxLevel = level.length;
-    for(var i = 0; i < maxLevel; i++){
+    for (var i = 0; i < maxLevel; i++) {
         //Within difficulty i+1?
-        if(dist <= level[i][0] / grade + level[i][1]){
-            return i+1;
+        if (dist <= level[i][0] / grade + level[i][1]) {
+            return i + 1;
         }
     }
     // Off the charts difficulty, return highest difficulty
@@ -239,18 +245,19 @@ function getClimbDifficulty(climb){
 /**
  * Returns the difficulty of a route
  *
- * @param route 	A line
- * @return 			The difficulty level of the route
+ * @param route    A line
+ * @return            The difficulty level of the route
  */
-function getRouteDifficulty(route){
+function getRouteDifficulty(route) {
     var climbs = getClimbs(route);
-   // console.log(climbs);
+    // console.log(climbs);
     if (climbs.length === 0) {
         return 1;
     } else {
         return Math.max(...climbs.map(getClimbDifficulty));
     }
 }
+
 //--------------------------------------------------------------------------------------------------------------------//
 
 //---------------------------------------- GEOOBJECTS PROCESSING------------------------------------------------------//
@@ -267,6 +274,12 @@ var national_parks = require('./data/bb_parks.json');
 function isPointonLine(line, point) {
     var snapped_point = turf.pointOnLine(line, point, 'kilometers')
     return snapped_point["properties"]["dist"] < 0.000001;
+}
+
+function isSamePoint(point1, point2) {
+    var point1_coords = turf.getCoord(point1);
+    var point2_coords = turf.getCoord(point2);
+    return Math.abs(point1_coords[0] - point2_coords[0]) < 0.0001 && Math.abs(point1_coords[1] - point2_coords[1]) < 0.0001;
 }
 
 function mergeFeatureCollections(featCol_arr) {
@@ -341,7 +354,7 @@ function appendDifficultytoRoutes(routesArray) {
     for (var i = 0; i < routesArray.length; i++) {
         var route = routesArray[i]["features"][0];
         var difficulty = getRouteDifficulty(turf.getCoords(route));
-	route["difficulty"] = difficulty;
+        route["difficulty"] = difficulty;
         //console.log(route["difficulty"]);
     }
     return routesArray;
@@ -385,10 +398,12 @@ function getSameRoutes(routefeatCol1, routefeatCol2) {
     var route1 = routefeatCol1["features"];
     var route2 = routefeatCol2["features"];
     var routes = [];
+    var routes_id = [];
     for (var i = 0; i < route1.length; i++) {
         for (var j = 0; j < route2.length; j++) {
-            if (route1[i].id === route2[j].id) {
+            if (route1[i].id === route2[j].id && !routes_id.includes(route1[i].id)) {
                 routes.push(route1[i]);
+                routes_id.push(route1[i].id);
             }
         }
     }
@@ -401,22 +416,28 @@ function connectRoutes(start_pt, end_pt, mode, route_array) {
     var end_coords = turf.getCoord(end_pt);
     var promise_array = [];
     for (var i = 0; i < route_array.length; i++) {
-	    var pcn_entry = route_array[i]["features"][1];
-	    var pcn_exit = route_array[i]["features"][2];
-            var pcn_entry_coords = turf.getCoord(pcn_entry);
-            var pcn_exit_coords = turf.getCoord(pcn_exit);
-            var route = route_array[i]["features"][0];
-	    var sliced_route = turf.lineSlice(pcn_entry, pcn_exit, route);
-	    var sliced_pcn_coords = turf.getCoords(sliced_route);
-            //create promise array
-            var route_promise_arr = [routeReq(start_coords, pcn_entry_coords, mode), routeReq(pcn_exit_coords, end_coords, mode)];
-		//returns a promise chain
-            promise_array[i] = Promise.all(route_promise_arr).then(function (res) {
-                var starting_route_coords = turf.getCoords(res[0]["main"]);
-                var ending_route_coords = turf.getCoords(res[1]["main"]);
-		return starting_route_coords.concat(sliced_pcn_coords, ending_route_coords);
-                    //
-                });
+        var pcn_entry = route_array[i]["features"][1];
+        var pcn_exit = route_array[i]["features"][2];
+        var route = route_array[i]["features"][0];
+
+        var pcn_entry_coords = turf.getCoord(pcn_entry);
+        var pcn_exit_coords = turf.getCoord(pcn_exit);
+        var sliced_route = turf.lineSlice(pcn_entry, pcn_exit, route);
+        var sliced_pcn_coords = [];
+        if (isSamePoint(turf.point(turf.getCoords(sliced_route)[0]), pcn_entry_coords)) {
+            sliced_pcn_coords = turf.getCoords(sliced_route);
+        } else {
+            sliced_pcn_coords = turf.getCoords(sliced_route).slice().reverse();
+        }
+        //create promise array
+        var route_promise_arr = [routeReq(start_coords, pcn_entry_coords, mode), routeReq(pcn_exit_coords, end_coords, mode), sliced_pcn_coords];
+        //returns a promise chain
+        promise_array[i] = Promise.all(route_promise_arr).then(function (res) {
+            var starting_route_coords = turf.getCoords(res[0]["main"]);
+            var ending_route_coords = turf.getCoords(res[1]["main"]);
+            return starting_route_coords.concat(res[2], ending_route_coords);
+            //
+        });
     }
     return Promise.all(promise_array).then(function (res) {
         for (var i = 0; i < res.length; i++) {
@@ -537,15 +558,21 @@ function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
 
     //async command
     return connectRoutes(startPoint, endPoint, mode, routeArray)
-	.then(function(x) { 
-		//console.log(x);
-		return appendDifficultytoRoutes(x);})
-        .then(function(x) {
-		return appendDistancetoRoutes(x);})
-        .then(function(x) {
-		return filterbyDifficulty(difficulty, x);})
-        .then(function(x) {return filterbyDistance(distance, x)});
+        .then(function (x) {
+            //console.log(x);
+            return appendDifficultytoRoutes(x);
+        })
+        .then(function (x) {
+            return appendDistancetoRoutes(x);
+        })
+        .then(function (x) {
+            return filterbyDifficulty(difficulty, x);
+        })
+        .then(function (x) {
+            return filterbyDistance(distance, x)
+        });
 }
+
 // function async() {
 //     return new Promise(function (resolve, reject) {
 //         request(route_options, function(err, response, body) {
@@ -566,11 +593,11 @@ exports.get_features = function (req, res) {
     var sp_array = JSON.parse("[" + start_point + "]");
     var ep_array = JSON.parse("[" + end_point + "]");
 
-    getFeaturesonReq(mode, sp_array, ep_array, distance, difficulty).then(function(result) {
+    getFeaturesonReq(mode, sp_array, ep_array, distance, difficulty).then(function (result) {
         console.log(result);
         res.send(result);
-    }).catch( function (err) {
-	console.log("%s", err);
+    }).catch(function (err) {
+        console.log("%s", err);
     });
 };
 
