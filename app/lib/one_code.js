@@ -288,7 +288,7 @@ function filterbyDifficulty(diff, routesArray) {
     for (var i = 0; i < routesArray.length; i++) {
         var route = routesArray[i]["features"][0];
         if (route["difficulty"] === diff) {
-            filteredroutes = routesArray[i].concat(filteredroutes);
+            filteredroutes = [routesArray[i]].concat(filteredroutes);
         } else if (route["difficulty"] < diff) {
             filteredroutes.push(routesArray[i]);
         }
@@ -302,7 +302,7 @@ function filterbyDistance(dist, routesArray) {
     for (var i = 0; i < routesArray.length; i++) {
         var route = routesArray[i]["features"][0];
         if (route["distance"] === dist) {
-            filteredroutes = routesArray[i].concat(filteredroutes);
+            filteredroutes = [routesArray[i]].concat(filteredroutes);
         } else if (route["distance"] < dist) {
             filteredroutes.push(routesArray[i]);
         }
@@ -387,6 +387,11 @@ function routestoFeatureCollectionArray(routes, entry_points, exit_points) {
         }
         featCol_array[i] = turf.featureCollection(featCol_array[i]);
     }
+    featCol_array.sort(function (featcol1, featcol2) {
+        var dist1 = turf.distance(featcol1[1], featcol1[2]);
+        var dist2 = turf.distance(featcol2[1], featcol2[2]);
+        return dist2 - dist1;
+    });
     return featCol_array;
 }
 
