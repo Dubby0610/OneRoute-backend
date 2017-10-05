@@ -3,6 +3,18 @@ var polyUtil = require('polyline-encoded');
 var request = require("request");
 var Promise = require("promise");
 
+
+//DATASETS
+    //ELEVATION
+    var elevation = require('./data/elevation_SGP.json');
+    var origin = [103.6, 1.16];
+    var pixel_size = 0.0002; // Pixels are squares
+    //PCN NETWORK
+    var pcn_access_points = require('./data/bb_pcn_access_points.json');
+    var pcn = require('./data/bb_pcn.json');
+    var national_parks = require('./data/bb_parks.json');
+
+
 //------------------------------- INTERNAL SERVER CALLS TO ONEMAP ---------------------------------------------------//
 function routeReq(start, end, mode) {
     var start_point = start.slice().reverse();
@@ -58,64 +70,16 @@ function routeReq(start, end, mode) {
         var parsed_result = {
             main: feature_from_api(result)
         };
-        // parsed_result["alternative"] = [];
-        // if (result["alternativeroute"]) {
-        //     for (var i = 0; i < result["alternativeroute"].length; i++) {
-        //         parsed_result["alternative"][i] = feature_from_api(result["alternativeroute"][i]);
-        //     }
-        // }
-//        console.log(parsed_result);
         return parsed_result;
     }).catch(function (err) {
         console.log("%s", err);
     });
 }
 
-function searchReq(searchVal) {
-
-    var search_options = {
-        method: "GET",
-        url: "http://onemap.duckdns.org/search",
-        qs: {
-            searchVal: searchVal,
-            getAddrDetails: "Y",
-            returnGeom: "N"
-        }
-    };
-    var array_of_features = [];
-    request(search_options, function (err, response, body) {
-        if (err) throw new Error(err);
-        console.log(body);
-        var result = JSON.parse(data);
-
-
-        function featurepoint(pointjson) {
-            return {
-                "type": "Point",
-                "coordinates": turf.Point(pointjson["LONGITUDE"], pointjson["LATITUDE"]),
-                "properties": {
-                    "name": pointjson["SEARCHVAL"],
-                    "address": pointjson["ADDRESS"]
-                }
-            }
-        }
-
-        for (var i = 0; i < result["results"].length; i++) {
-            array_of_features[i] = turf.feature(featurepoint(result["results"][i]))
-        }
-        console.log(array_of_features);
-    });
-
-    return array_of_features;
-}
-
 //--------------------------------------------------------------------------------------------------------------------//
 
 //---------------------------------------- ELEVATION & DIFFICULTY FUNCTIONS ------------------------------------------//
-var elevation = require('./data/elevation_SGP.json');
 
-var origin = [103.6, 1.16];
-var pixel_size = 0.0002; // Pixels are squares
 /**
  * Converts a GeoJSON point to a pixel based on the
  * Singapore elevation map from NASA's data. Coordinates
@@ -147,15 +111,11 @@ function lonlatToPixel(pair) {
 
 function getElevation(p) {
     var pixelLoc = pointToPixel(p);
-    // console.log(pixelLoc);
-    //queryDBElevation(pixelLoc[0], pixelLoc[1]);
     return elevation[pixelLoc[0]][pixelLoc[1]];
 }
 
 function getElevationFromCoords(pair) {
     var pixelcoords = lonlatToPixel(pair);
-    //TODO: ACCESS ELEVATION
-    //CODE STOPS HERE
     return elevation[pixelcoords[0]][pixelcoords[1]];
 }
 
@@ -261,15 +221,6 @@ function getRouteDifficulty(route) {
 //--------------------------------------------------------------------------------------------------------------------//
 
 //---------------------------------------- GEOOBJECTS PROCESSING------------------------------------------------------//
-
-
-var testpoint = turf.point([103.7349, 1.3572]);
-// Datasets
-var pcn_access_points = require('./data/bb_pcn_access_points.json');
-var pcn = require('./data/bb_pcn.json');
-var national_parks = require('./data/bb_parks.json');
-
-
 //Helper Functions
 function isPointonLine(line, point) {
     var snapped_point = turf.pointOnLine(line, point, 'kilometers')
@@ -282,51 +233,13 @@ function isSamePoint(point1, point2) {
     return Math.abs(point1_coords[0] - point2_coords[0]) < 0.0001 && Math.abs(point1_coords[1] - point2_coords[1]) < 0.0001;
 }
 
-function mergeFeatureCollections(featCol_arr) {
-    var feature_array = [];
-    for (var i = 0; i < featCol_arr.length; i++) {
-        feature_array = feature_array.concat(featCol_arr[i]["features"]);
-    }
-    return turf.featureCollection(feature_array);
-}
-
-
-// Distance Functions
-function distanceTwoPointsonLine(pt1, pt2, line) {
-    var sliced_line = turf.lineSlice(pt1, pt2, line);
-    return turf.lineDistance(sliced_line, 'kilometers');
-}
-
-function distanceTwoPoints(pt1, pt2) {
-    var line = turf.linestring([pt1, pt2]);
-    return turf.lineDistance(line, 'kilometers');
-}
-
 //Routing Functions
-
-// POINT BASED
-
-function getPointsAround(pt, radius, dataset) {
-    var circle_around_point = turf.circle(pt, radius, 10)
-    var circle_collection = turf.featureCollection([
-        circle_around_point]);
-    return turf.within(dataset, circle_collection);
-}
-
-function getNearestEntryPoint(pt) {
-    return turf.featureCollection(turf.nearest(pt, pcn_access_points));
-}
 
 // REGION OF INTEREST BASED
 
 function regionofInterest(pt, radius) {
     var circle_around_point = turf.circle(pt, radius, 10);
     return turf.featureCollection([circle_around_point]);
-}
-
-function boundingBox(bbox) {
-    var bbox_Poly = turf.bboxPolygon(bbox);
-    return turf.featureCollection([bbox_Poly]);
 }
 
 function getPointsinROI(ROI, dataset) {
@@ -374,7 +287,9 @@ function filterbyDifficulty(diff, routesArray) {
     var filteredroutes = [];
     for (var i = 0; i < routesArray.length; i++) {
         var route = routesArray[i]["features"][0];
-        if (route["difficulty"] <= diff) {
+        if (route["difficulty"] === diff) {
+            filteredroutes = routesArray[i].concat(filteredroutes);
+        } else if (route["difficulty"] < diff) {
             filteredroutes.push(routesArray[i]);
         }
     }
@@ -386,14 +301,15 @@ function filterbyDistance(dist, routesArray) {
     var filteredroutes = [];
     for (var i = 0; i < routesArray.length; i++) {
         var route = routesArray[i]["features"][0];
-        if (route["difficulty"] <= dist) {
+        if (route["distance"] === dist) {
+            filteredroutes = routesArray[i].concat(filteredroutes);
+        } else if (route["distance"] < dist) {
             filteredroutes.push(routesArray[i]);
         }
     }
 
     return routesArray;
 }
-
 function getSameRoutes(routefeatCol1, routefeatCol2) {
     var route1 = routefeatCol1["features"];
     var route2 = routefeatCol2["features"];
@@ -411,7 +327,6 @@ function getSameRoutes(routefeatCol1, routefeatCol2) {
 }
 
 function connectRoutes(start_pt, end_pt, mode, route_array) {
-    console.log(route_array);
     var start_coords = turf.getCoord(start_pt);
     var end_coords = turf.getCoord(end_pt);
     var promise_array = [];
@@ -436,7 +351,6 @@ function connectRoutes(start_pt, end_pt, mode, route_array) {
             var starting_route_coords = turf.getCoords(res[0]["main"]);
             var ending_route_coords = turf.getCoords(res[1]["main"]);
             return starting_route_coords.concat(res[2], ending_route_coords);
-            //
         });
     }
     return Promise.all(promise_array).then(function (res) {
@@ -477,69 +391,6 @@ function routestoFeatureCollectionArray(routes, entry_points, exit_points) {
 }
 
 
-function remove_description(featureCol) {
-    var feature_array = featureCol["features"];
-    for (var i = 0; i < feature_array.length; i++) {
-        delete feature_array[i]["properties"]["description"];
-    }
-    return featureCol
-}
-
-function JSONtoString(x) {
-    return JSON.stringify(x, null, 4);
-}
-
-// APIs
-function getPCN(pt, radius) {
-    var inputPoint = turf.point(pt);
-    var nearbyEntryPoints = getPointsAround(inputPoint, radius, pcn_access_points);
-    var nearbyRoutes = getRoutesfromEntryPoints(nearbyEntryPoints);
-
-
-    var feat_array = [inputPoint];
-    feat_array = feat_array.concat(turf.circle(inputPoint, radius, 10));
-    feat_array = feat_array.concat(nearbyEntryPoints["features"]);
-    feat_array = feat_array.concat(nearbyRoutes["features"]);
-
-    return turf.featureCollection(feat_array);
-}
-
-function getFeatures(pt, radius) {
-    var inputPoint = turf.point(pt);
-    var inputROI = regionofInterest(inputPoint, radius);
-    var nearbyEntryPoints = getPointsinROI(inputROI, pcn_access_points);
-    var nearbyParks = getPointsinROI(inputROI, national_parks);
-    var nearbyRoutes = getRoutesfromEntryPoints(nearbyEntryPoints);
-    var nearbyRoutes_with_difficulty = appendDifficultytoRoutes(nearbyRoutes);
-    var routeFeatColArray = routestoFeatureCollectionArray(nearbyRoutes_with_difficulty, nearbyEntryPoints);
-
-    var feat_col_arr = [
-        turf.featureCollection([inputPoint]),
-        inputROI,
-        nearbyEntryPoints,
-        nearbyParks,
-        nearbyRoutes
-    ];
-
-    return mergeFeatureCollections(feat_col_arr);
-}
-
-function getFeaturesBbox(bbox) {
-    var bbox_Polygon = boundingBox(bbox);
-    var nearbyEntryPoints = getPointsinROI(bbox_Polygon, pcn_access_points);
-    var nearbyParks = getPointsinROI(bbox_Polygon, national_parks);
-    var nearbyRoutes = getRoutesfromEntryPoints(nearbyEntryPoints);
-    var nearbyRoutes_with_difficulty = appendDifficultytoRoutes(nearbyRoutes);
-    var feat_col_arr = [
-        bbox_Polygon,
-        nearbyEntryPoints,
-        nearbyParks,
-        nearbyRoutes_with_difficulty
-    ];
-
-    return mergeFeatureCollections(feat_col_arr);
-}
-
 //--------------------------------------------------------------------------------------------------------------------//
 // MAIN API HERE ------------------------------------------------------------------------------------------------------>
 function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
@@ -559,7 +410,6 @@ function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
     //async command
     return connectRoutes(startPoint, endPoint, mode, routeArray)
         .then(function (x) {
-            //console.log(x);
             return appendDifficultytoRoutes(x);
         })
         .then(function (x) {
@@ -572,16 +422,6 @@ function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
             return filterbyDistance(distance, x)
         });
 }
-
-// function async() {
-//     return new Promise(function (resolve, reject) {
-//         request(route_options, function(err, response, body) {
-//             if (err) { return reject(err); }
-//             // console.log(response.statusCode);
-//             else { return resolve(body); }
-//         });
-//     });
-// }
 
 exports.get_features = function (req, res) {
     var mode = req.query.mode;
@@ -600,16 +440,3 @@ exports.get_features = function (req, res) {
         console.log("%s", err);
     });
 };
-
-//Frontend Test
-
-// var test_str = JSONtoString(getEntryPointsAround(testpoint, 1.5));
-// var test_str = JSONtoString(remove_description(getRoutesfromEntryPoints(getEntryPointsAround(testpoint, 1.5))));
-// var test_str = JSONtoString(remove_description(getRoutes([103.7349, 1.3572], 1.5)));
-// var test_str = JSONtoString(remove_description(getFeatures([103.7349, 1.3572], 3)));
-// var test_str = JSONtoString(remove_description(getFeaturesBbox([103.7349, 1.3572, 103.80, 1.37])));
-// $(document).ready(function () {
-//    $("#test").text(test_str);
-//    routeReq([103.73, 1.3572], [103.80, 1.37], "cycle");
-//
-// });
