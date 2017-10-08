@@ -9,9 +9,16 @@ var elevation = require('./data/elevation_SGP.json');
 var origin = [103.6, 1.16];
 var pixel_size = 0.0002; // Pixels are squares
 //PCN
-var pcn_access_points = require('./data/all_pcn_access_points.json');
-var pcn = require('./data/all_pcn.json');
+var pcn_access_points = require('./data/bb_pcn_access_points.json');
+var pcn = require('./data/bb_pcn.json');
 var national_parks = require('./data/bb_parks.json');
+
+
+function routeDifficulties() {
+   turf.featureEach(pcn, function (currentFeature, featureIndex) {
+          var difficulty = getRouteDifficulty(turf.getCoords(currentFeature));
+          console.log(difficulty);});
+}
 
 //------------------------------- INTERNAL SERVER CALLS TO ONEMAP ---------------------------------------------------//
 function routeReq(start, end, mode) {
@@ -216,7 +223,7 @@ function getClimbDifficulty(climb) {
  */
 function getRouteDifficulty(route) {
     var climbs = getClimbs(route);
-    // console.log(climbs);
+    //console.log(climbs);
     if (climbs.length === 0) {
         return 1;
     } else {
@@ -225,6 +232,10 @@ function getRouteDifficulty(route) {
         ;
     }
 }
+
+
+routeDifficulties();
+
 
 //--------------------------------------------------------------------------------------------------------------------//
 
@@ -368,7 +379,7 @@ function filterbyDistance(dist, routesArray) {
     var filteredroutes = [];
     for (var i = 0; i < routesArray.length; i++) {
         var route = routesArray[i]["features"][0];
-        if (route["difficulty"] <= dist) {
+        if (route["distance"] <= dist) {
             filteredroutes.push(routesArray[i]);
         }
     }
