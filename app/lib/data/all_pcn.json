@@ -1,4 +1,4 @@
-var all_pcn = {
+{
     "type": "FeatureCollection",
     "features": [{
         "geometry": {
