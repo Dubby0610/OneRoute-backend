@@ -335,8 +335,9 @@ function getPointsinROI(ROI, dataset) {
 
 function getRoutesinROI(ROI, dataset) {
     var feat_col = [];
+    var ROI_feature = ROI.features[0];
     turf.featureEach(dataset, function (currentFeature, featureIndex) {
-        if (turf.booleanCrosses(currentFeature, ROI)) {
+        if (turf.booleanCrosses(currentFeature, ROI_feature)) {
             feat_col.push(currentFeature);
         }
     });
@@ -352,7 +353,7 @@ function appendRouteID(points, routes) {
             }
         });
     });
-    return turf.featureCollection(point_col);
+    return point_col;
 }
 
 // INTERMEDIATES
@@ -599,7 +600,7 @@ function getFeaturesonReq(mode, start_point, end_point, distance, difficulty) {
 
 //TODO: WRITE FUNCTION OUT
 function get_dijkstra_routes(start_node, end_node, distance, node_pairs) {
-    node_pairs.put([end_node, "end"]);
+    node_pairs.push([end_node, "end"]);
 
     function dijkstra_helper(accum_list, beginning_node, node_list, pcn_count, distance_left) {
 
@@ -608,17 +609,20 @@ function get_dijkstra_routes(start_node, end_node, distance, node_pairs) {
         } else if (beginning_node[1] === "end") {
             return accum_list;
         } else {
-            node_list.map(function (x, index) {
-                var distance_from_beginning = turf.distance(beginning_node, x[0]);
+            for (var i = 0; i < node_list.length; i++) {
+                var x = node_list[i];
+                var distance_from_beginning = turf.distance(beginning_node[0], x[0]);
                 var distance_carry = distance_left - distance_from_beginning;
                 if (beginning_node[1] === x[1]) {
                     var pcn_count_carry = pcn_count + 1;
-                    return dijkstra_helper([[x[0], 1]].concat(accum_list), x, node_list.slice().splice(index, 1), pcn_count_carry, distance_carry);
+                    var accum_list_i = dijkstra_helper([[x[0], 1]].concat(accum_list), x, node_list.slice().splice(i, 1), pcn_count_carry, distance_carry);
                 } else {
                     pcn_count_carry = pcn_count;
-                    return dijkstra_helper([[x[0], 1]].concat(accum_list), x, node_list.slice().splice(index, 1), pcn_count_carry, distance_carry);
+                    accum_list_i = dijkstra_helper([[x[0], 0]].concat(accum_list), x, node_list.slice().splice(i, 1), pcn_count_carry, distance_carry);
                 }
-            })
+                accum_list.concat(accum_list_i);
+            }
+            return accum_list;
         }
     }
 console.log(dijkstra_helper([], [start_node, "start"], node_pairs, 0, distance));
@@ -647,7 +651,7 @@ function dijkstra_route(start, end, dist) {
         return get_dijkstra_routes(start, end, dist, annotatedEntryPoints);
     }
 }
-console.log(dijkstra_route(turf.Point([103.75932455062866,1.349519864690123]), turf.Point([103.74810218811034,1.3603958625262034]), 5));
+console.log(dijkstra_route(turf.point([103.75932455062866,1.349519864690123]), turf.point([103.74810218811034,1.3603958625262034]), 5));
 
 //TODO: WRITE FUNCTION OUT
 function connect_node_array(array_of_node_array) {
@@ -662,7 +666,7 @@ function connect_node_array(array_of_node_array) {
             )
         )
     )
-     */
+     */q
 }
 
 /*
