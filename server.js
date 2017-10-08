@@ -3,14 +3,6 @@ var express = require('express'),
     port = process.env.PORT || 3000,
     bodyParser = require('body-parser');
 
-//    mongoose = require('mongoose'),
-//    Token = require('./app/onemap_auth/authModel'); //created model loading here
-
-
-// mongoose instance connection url connection
-//mongoose.Promise = global.Promise;
-//mongoose.connect('mongodb://127.0.0.1/onemapdb', { useMongoClient: true });
-
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow'Headers", "Origin, X-Requested-With, Content-Type, Accept");

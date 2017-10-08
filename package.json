@@ -25,7 +25,6 @@
     "@turf/turf": "^4.7.3",
     "body-parser": "^1.17.2",
     "express": "^4.15.4",
-    "mongoose": "^4.11.10",
     "polyline-encoded": "0.0.8",
     "promise": "^8.0.1",
     "request": "^2.81.0"
