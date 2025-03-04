@@ -14,6 +14,9 @@ module.exports = function(app) {
 
     app.route('/onemap/route')
         .get(onemap.draw_path);
+    
+    // app.route('/onemap/route')
+    //     .get(onemap.draw_path);
 
     // API Routes
     app.route('/api/route')
